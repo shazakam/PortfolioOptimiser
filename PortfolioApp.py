@@ -132,18 +132,7 @@ try:
                     fig = px.histogram(fundamental_metrics_df[col].dropna(), x=col, nbins=50, title=f"Distribution of {col}")
                     st.plotly_chart(fig, use_container_width=True)
 
-
-
-        # Filter according to user preferences for volatility and fundamental metrics
-
-        # Select final equities to run portfolio model on
-
-        # Display Time series Data for Selected Equities
-
-        # Select Portfolio Model to run and select relevant parameters
-
-        # Display final results and visualisations
+            st.session_state.final_df = pd.concat([return_and_risk_df, fundamental_metrics_df], axis=1)
         
-
 except Exception as e:
     st.error(f"Error loading data: {e}")
