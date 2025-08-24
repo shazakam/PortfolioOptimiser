@@ -1,10 +1,11 @@
 import streamlit as st 
 import pandas as pd
 import yfinance as yf
-from utils.data_utils import load_market_data
+from utils.data_utils import load_market_data, get_fundamentals
 import jax.numpy as jnp
 from utils.volatility_calculator import VolatilityCalculator
 import numpy as np 
+import plotly.express as px
 
 @st.cache_data
 def get_equity_list() -> pd.DataFrame:
@@ -18,7 +19,6 @@ def get_equity_list() -> pd.DataFrame:
 
 
 st.title("Portfolio Optimiser")
-
 try:
     market_df = get_equity_list()
 
@@ -56,27 +56,83 @@ try:
         # Calculate volatility metrics for each company and show results alongside fundamental data + some summary stats for the equities 
         return_and_risk_metrics = {}
 
+        fundamental_metrics = {}
+
         if st.session_state.market_data is not None:
             for market in possible_markets:
                 market_index_ticker = yf.Ticker(yf_market_tag_index[market][1])
                 market_index_data = market_index_ticker.history(start=start_date, end=end_date, auto_adjust = False).asfreq('B').ffill()
                 for eq_ticker_class in st.session_state.market_data[market]:
+
+                    # Calculate return and risk metrics from price data
                     hist_data = eq_ticker_class.history(start=start_date, end=end_date, auto_adjust = False).asfreq('B').ffill()
                     
                     volatility_calculator = VolatilityCalculator()
-                    beta_weekly = volatility_calculator.calculate_beta(hist_data['Adj Close'].values, market_index_data['Adj Close'].values, 5)
+                    total_return = (hist_data['Adj Close'].iloc[-1] - hist_data['Adj Close'].iloc[0]) / hist_data['Adj Close'].iloc[0]
                     beta_monthly = volatility_calculator.calculate_beta(hist_data['Adj Close'].values, market_index_data['Adj Close'].values, 21)
-                    monthly_returns = hist_data['Adj Close'].resample('ME').last().pct_change(21).dropna()
+                    monthly_returns = hist_data['Adj Close'].resample('ME').last().pct_change().dropna()
+                    annual_returns = hist_data['Adj Close'].resample('YE').last().pct_change().dropna()
 
                     geo_monthly = np.exp(np.log(monthly_returns+1).mean()) - 1
+                    geo_annual = np.exp(np.log(annual_returns+1).mean()) - 1
 
                     return_and_risk_metrics[eq_ticker_class.ticker] = {
+                        'Total Return over period': total_return,
                         'Monthly Mean Return': geo_monthly,
-                        'Beta (weekly)': beta_weekly,
+                        'Annual Mean Return': geo_annual,
                         'Beta (monthly)': beta_monthly
                     }
-            return_and_risk_df = pd.DataFrame(return_and_risk_metrics).T
-            st.dataframe(return_and_risk_df)
+
+                    # Get Fundamental Data
+                    fundamental_metrics[eq_ticker_class.ticker] = get_fundamentals(eq_ticker_class)
+
+            return_and_risk_df = pd.DataFrame(return_and_risk_metrics).T 
+            fundamental_metrics_df = pd.DataFrame(fundamental_metrics).T
+            # Python
+            fundamental_metrics_df['P/E (forward)'] = pd.to_numeric(fundamental_metrics_df['P/E (forward)'].replace(['Infinity', 'inf', '-inf'], None), errors='coerce')
+            fundamental_metrics_df['P/E (trailing)'] = pd.to_numeric(fundamental_metrics_df['P/E (trailing)'].replace(['Infinity', 'inf', '-inf'], None), errors='coerce')
+
+            # Risk Metric Tabs
+            risk_tabs = st.tabs(["Return and Risk Metrics", "Total Return Distribution", "Monthly Return Distribution", "Annual Return Distribution", "Beta (monthly) Distribution"])
+            with risk_tabs[0]:
+                st.title("Return and Risk Metrics")
+                st.dataframe(return_and_risk_df)
+
+            for i, col in enumerate(return_and_risk_df.columns):
+                with risk_tabs[i+1]:
+                    st.title(f"{col} Distribution")
+                    fig = px.histogram(return_and_risk_df[col], x=col, nbins=50, title=f"Distribution of {col}")
+                    st.plotly_chart(fig, use_container_width=True)
+
+            # Valuation and Profitability Metrics Tabs
+            valuation_columns = ['P/E (trailing)', 'P/E (forward)', 'Price to Book', 'ROE', 'ROA']
+            valuation_tabs = st.tabs(['Valuation and Profitability Metrics'] + valuation_columns)
+
+            with valuation_tabs[0]:
+                st.title("Valuation and Profit Metrics")
+                st.dataframe(fundamental_metrics_df[valuation_columns])
+
+            for i, col in enumerate(valuation_columns):
+                with valuation_tabs[i+1]:
+                    st.title(f"{col} Distribution")
+                    fig = px.histogram(fundamental_metrics_df[col], x=col, nbins=50, title=f"Distribution of {col}")
+                    st.plotly_chart(fig, use_container_width=True)
+
+            # Liquidity and Solvency Metrics Tabs 
+            liquidity_columns = ['Current Ratio', 'Quick Ratio', 'Debt to Equity']
+            liquidity_tabs = st.tabs(['Liquidity and Solvency Metrics'] + liquidity_columns)
+
+            with liquidity_tabs[0]:
+                st.title("Liquidity and Solvency Metrics")
+                st.dataframe(fundamental_metrics_df[liquidity_columns])
+
+            for i, col in enumerate(liquidity_columns):
+                with liquidity_tabs[i+1]:
+                    st.title(f"{col} Distribution")
+                    fig = px.histogram(fundamental_metrics_df[col].dropna(), x=col, nbins=50, title=f"Distribution of {col}")
+                    st.plotly_chart(fig, use_container_width=True)
+
+
 
         # Filter according to user preferences for volatility and fundamental metrics
 
