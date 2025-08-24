@@ -66,17 +66,11 @@ try:
                     volatility_calculator = VolatilityCalculator()
                     beta_weekly = volatility_calculator.calculate_beta(hist_data['Adj Close'].values, market_index_data['Adj Close'].values, 5)
                     beta_monthly = volatility_calculator.calculate_beta(hist_data['Adj Close'].values, market_index_data['Adj Close'].values, 21)
-                    daily_returns = hist_data['Adj Close'].pct_change(1).dropna()
-                    weekly_returns = hist_data['Adj Close'].resample('W-FRI').last().pct_change(5).dropna()
                     monthly_returns = hist_data['Adj Close'].resample('ME').last().pct_change(21).dropna()
 
-                    geo_daily = np.exp(np.log(daily_returns+1).mean()) - 1
-                    geo_weekly = np.exp(np.log(weekly_returns+1).mean()) - 1
                     geo_monthly = np.exp(np.log(monthly_returns+1).mean()) - 1
 
                     return_and_risk_metrics[eq_ticker_class.ticker] = {
-                        'Daily Mean Return': geo_daily,
-                        'Weekly Mean Return': geo_weekly,
                         'Monthly Mean Return': geo_monthly,
                         'Beta (weekly)': beta_weekly,
                         'Beta (monthly)': beta_monthly
