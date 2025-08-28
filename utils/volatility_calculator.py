@@ -1,33 +1,24 @@
 import jax
 import numpy as np
+from sklearn.linear_model import LinearRegression
+
 class VolatilityCalculator():
 
     def __init__(self):
         pass
 
-    def annualised_std_log_returns(self, historical_data : np.array, return_period : int, daily_week_monthly : str) -> float:
-        # Calculate Log Returns
-        log_returns = jax.numpy.log(historical_data[return_period:] / historical_data[:-return_period])
-
-        # Calculate Standard Deviation of Log Returns
-        if daily_week_monthly == 'daily':
-            return jax.numpy.std(log_returns)*250
-        elif daily_week_monthly == 'weekly':
-            return jax.numpy.std(log_returns)*36
-        elif daily_week_monthly == 'monthly':
-            return jax.numpy.std(log_returns)*9
-
     def calculate_beta(self, historical_data : np.array, market_data : np.array, return_period : int) -> float:
-        # Calculate Log Returns
-        returns = historical_data[return_period:] / historical_data[:-return_period]
-        market_returns = market_data[return_period:] / market_data[:-return_period]
+        # Compute simple returns over the given period
+        returns = historical_data[return_period:] / historical_data[:-return_period] - 1
+        market_returns = market_data[return_period:] / market_data[:-return_period] - 1
 
-        # Calculate Covariance and Variance
-        covariance = np.cov(returns, market_returns)[0][1]
-        variance = np.var(market_returns)
+        # Reshape for sklearn regression
+        X = market_returns.reshape(-1, 1)
+        y = returns
 
-        # Calculate Beta
-        beta = covariance / variance
+        # Run linear regression (intercept = alpha, slope = beta)
+        model = LinearRegression().fit(X, y)
+        beta = model.coef_[0]
 
         return beta
     
