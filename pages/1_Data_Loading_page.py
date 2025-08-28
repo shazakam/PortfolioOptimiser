@@ -1,7 +1,7 @@
 import streamlit as st 
 import pandas as pd
 import yfinance as yf
-from utils.data_utils import load_market_data, get_fundamentals
+from utils.data_utils import load_market_data, get_fundamentals, get_fundamental_loops
 import jax.numpy as jnp
 from utils.volatility_calculator import VolatilityCalculator
 import numpy as np 
@@ -51,44 +51,18 @@ try:
         if st.button("Load Market Data"):
             st.session_state.market_data = load_market_data(possible_markets, ticker_dictionary, start_date, end_date)
             
+            
         # Currency Adjustment (if needed)
     
         # Calculate volatility metrics for each company and show results alongside fundamental data + some summary stats for the equities 
-        return_and_risk_metrics = {}
+    
+        if st.button("Process Market Data") and st.session_state.market_data is not None:
 
-        fundamental_metrics = {}
-
-        if st.session_state.market_data is not None:
-            for market in possible_markets:
-                market_index_ticker = yf.Ticker(yf_market_tag_index[market][1])
-                market_index_data = market_index_ticker.history(start=start_date, end=end_date, auto_adjust = False).asfreq('B').ffill()
-                for eq_ticker_class in st.session_state.market_data[market]:
-
-                    # Calculate return and risk metrics from price data
-                    hist_data = eq_ticker_class.history(start=start_date, end=end_date, auto_adjust = False).asfreq('B').ffill()
-                    
-                    volatility_calculator = VolatilityCalculator()
-                    total_return = (hist_data['Adj Close'].iloc[-1] - hist_data['Adj Close'].iloc[0]) / hist_data['Adj Close'].iloc[0]
-                    beta_monthly = volatility_calculator.calculate_beta(hist_data['Adj Close'].values, market_index_data['Adj Close'].values, 21)
-                    monthly_returns = hist_data['Adj Close'].resample('ME').last().pct_change().dropna()
-                    annual_returns = hist_data['Adj Close'].resample('YE').last().pct_change().dropna()
-
-                    geo_monthly = np.exp(np.log(monthly_returns+1).mean()) - 1
-                    geo_annual = np.exp(np.log(annual_returns+1).mean()) - 1
-
-                    return_and_risk_metrics[eq_ticker_class.ticker] = {
-                        'Total Return over period': total_return,
-                        'Monthly Mean Return': geo_monthly,
-                        'Annual Mean Return': geo_annual,
-                        'Beta (monthly)': beta_monthly
-                    }
-
-                    # Get Fundamental Data
-                    fundamental_metrics[eq_ticker_class.ticker] = get_fundamentals(eq_ticker_class)
+            return_and_risk_metrics, fundamental_metrics = get_fundamental_loops(possible_markets, yf_market_tag_index, start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
 
             return_and_risk_df = pd.DataFrame(return_and_risk_metrics).T 
             fundamental_metrics_df = pd.DataFrame(fundamental_metrics).T
-            # Python
+            
             fundamental_metrics_df['P/E (forward)'] = pd.to_numeric(fundamental_metrics_df['P/E (forward)'].replace(['Infinity', 'inf', '-inf'], None), errors='coerce')
             fundamental_metrics_df['P/E (trailing)'] = pd.to_numeric(fundamental_metrics_df['P/E (trailing)'].replace(['Infinity', 'inf', '-inf'], None), errors='coerce')
 
