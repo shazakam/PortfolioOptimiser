@@ -3,6 +3,7 @@ import pandas as pd
 import jax.numpy as jnp
 from itertools import chain
 import plotly.express as px
+from utils.optimiser import PortofolioWeightCalculator
 
 # Select Stocks for model
 
@@ -54,8 +55,17 @@ if 'market_data' in st.session_state and len(possible_equities) > 0:
 
         st.plotly_chart(fig, use_container_width=True)
 
-        
-    # Display basic info for them i.e. Returns, Earnings Growth yapa yapa yapa
+        method = st.selectbox('Select Model Solution method', ['Direct Matrix Solution', 'Gradient Based solution'])
+
+
+        if st.button('Calculate weights'):
+            opt = PortofolioWeightCalculator(1)
+
+            if method == 'Direct Matrix Solution':
+                weights = opt.efficient_frontier_method(portfolio_timeseries, 21, 1.01)
+                print(weights)
+            else:
+                st.warning('Gradient Method')
 
     # Select Portfolio Model to run and select relevant parameters
 
