@@ -62,8 +62,8 @@ if 'market_data' in st.session_state and len(possible_equities) > 0:
             opt = PortofolioWeightCalculator(1)
 
             if method == 'Direct Matrix Solution':
-                weights = opt.efficient_frontier_method(portfolio_timeseries, 21, 1.01)
-                print(weights)
+                weights = opt.efficient_frontier_method(portfolio_timeseries, 251, 0.50)
+
             else:
                 st.warning('Gradient Method')
 
