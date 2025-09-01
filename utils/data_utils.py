@@ -5,26 +5,34 @@ from .volatility_calculator import VolatilityCalculator
 import numpy as np
 
 # Removes invalid tickers and only returns those with complete data for the specified date range
-def load_market_data(possible_markets, ticker_dictionary, start_date, end_date)-> dict[str, list[yf.Ticker]]:
+def load_market_data(possible_markets, ticker_dictionary, start_date, end_date)-> dict[str, dict]:
     market_ticker_classes_dict = {}
     end_date_inc = pd.to_datetime(end_date)+pd.Timedelta(days=1) # To ensure we get data for the end date as well
     data_loading_progress = st.progress(0, text="Loading Market Data...")
     for market in possible_markets:
         ticker_classes = []
-
+        ticker_str = []
         for tick in ticker_dictionary[market]:
             ticker_class = yf.Ticker(tick)
-            hist_data = ticker_class.history(start=start_date, end=end_date_inc)
+            hist_data = ticker_class.history(start = start_date, end = end_date_inc)
             if (not hist_data.empty):
                 if (pd.to_datetime(hist_data.index[0]).date() == pd.to_datetime(start_date).date()) and (pd.to_datetime(hist_data.index[-1]).date() == pd.to_datetime(end_date).date()):
                     ticker_classes.append(ticker_class)
+                    ticker_str.append(ticker_class.ticker)
 
         data_loading_progress.progress(1/len(possible_markets))
-        market_ticker_classes_dict[market] = ticker_classes
+        market_ticker_classes_dict[market] = dict(zip(ticker_str, ticker_classes))
 
     data_loading_progress.progress(1.0, text="Market Data Loaded!")
     st.success("Market Data Loaded Successfully!")
     return market_ticker_classes_dict
+
+# def load_equity_data(possible_equities, equity_ticker_dictionary):
+#     for equity_key in possible_equities:
+#         ticker_class = equity_ticker_dictionary[equity_key]
+#         ts_data = ticker_class.
+
+#     return
 
 def get_fundamentals(ticker_class:yf.Ticker)-> dict:
     fundamental_columns = ['P/E (trailing)', 'P/E (forward)', 'EPS (trailing)', 'EPS (forward)', 'Price to Book', 'ROE', 'ROA', 'Current Ratio', 'Quick Ratio', 'Debt to Equity']
@@ -53,8 +61,10 @@ def get_fundamental_loops(possible_markets:list, yf_market_tag_index : dict, sta
     for market in possible_markets:
         market_index_ticker = yf.Ticker(yf_market_tag_index[market][1])
         market_index_data = market_index_ticker.history(start=start_date, end=end_date, auto_adjust = False).asfreq('B').ffill()
-        for eq_ticker_class in st.session_state.market_data[market]:
+        for eq_ticker_key in st.session_state.market_data[market].keys():
+
             # Calculate return and risk metrics from price data
+            eq_ticker_class = st.session_state.market_data[market][eq_ticker_key]
             hist_data = eq_ticker_class.history(start=start_date, end=end_date, auto_adjust = False).asfreq('B').ffill()
             
             volatility_calculator = VolatilityCalculator()
@@ -74,7 +84,7 @@ def get_fundamental_loops(possible_markets:list, yf_market_tag_index : dict, sta
             }
 
             # Get Fundamental Data
-            fundamental_metrics[eq_ticker_class.ticker] = get_fundamentals(eq_ticker_class)
+            fundamental_metrics[eq_ticker_key] = get_fundamentals(eq_ticker_class)
 
             data_loading_progress.progress(total_processed/total_num_equitites, text=f"Processing Market Data... ({total_processed}/{total_num_equitites})")
             total_processed += 1

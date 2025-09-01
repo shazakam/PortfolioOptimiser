@@ -28,8 +28,8 @@ try:
 
     # TODO: Add more markets
     possible_markets = st.multiselect('Select Markets', ['Oslo Børs', 'Euronext Paris'], default=['Oslo Børs'])
-    start_date = st.date_input("Start Date", value=pd.to_datetime("2021-07-01"))
-    end_date = st.date_input("End Date", value=pd.to_datetime("2025-05-28"))
+    st.session_state.start_date = st.date_input("Start Date", value=pd.to_datetime("2021-07-01"))
+    st.session_state.end_date = st.date_input("End Date", value=pd.to_datetime("2025-05-28"))
 
     if not possible_markets:
         st.warning("Please select at least one market.")
@@ -49,7 +49,7 @@ try:
 
         # Load in yf Ticker for each equity
         if st.button("Load Market Data"):
-            st.session_state.market_data = load_market_data(possible_markets, ticker_dictionary, start_date, end_date)
+            st.session_state.market_data = load_market_data(possible_markets, ticker_dictionary, st.session_state.start_date, st.session_state.end_date)
             
             
         # Currency Adjustment (if needed)
@@ -58,7 +58,7 @@ try:
     
         if st.button("Process Market Data") and st.session_state.market_data is not None:
 
-            return_and_risk_metrics, fundamental_metrics = get_fundamental_loops(possible_markets, yf_market_tag_index, start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
+            return_and_risk_metrics, fundamental_metrics = get_fundamental_loops(possible_markets, yf_market_tag_index, st.session_state.start_date.strftime('%Y-%m-%d'), st.session_state.end_date.strftime('%Y-%m-%d'))
 
             return_and_risk_df = pd.DataFrame(return_and_risk_metrics).T 
             fundamental_metrics_df = pd.DataFrame(fundamental_metrics).T
