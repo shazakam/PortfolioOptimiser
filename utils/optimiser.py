@@ -2,6 +2,7 @@ import jax.numpy as jnp
 import pandas as pd
 import numpy as np 
 import streamlit as st
+import cvxpy as cp
 
 class PortofolioWeightCalculator():
 
@@ -44,6 +45,33 @@ class PortofolioWeightCalculator():
 
         return solution
     
+    def quadratic_prog_method(self,  equity_data : pd.DataFrame, period : int, risk_aversion : float):
+        epsilon = 1e-7
+        R = self.geometric_expected_returns(equity_data, period=period)
+        R = R.reshape(-1,1)
+        timeseries_returns = self.calculate_timeseries_returns(equity_data)
+        cov = self.calculate_covariance(timeseries_returns)
+        cov = cov + jnp.eye(cov.shape[0])*epsilon
+
+        var_scale = jnp.mean(jnp.diag(cov))  
+        cov = cov / var_scale
+        R = R / jnp.mean(abs(R))
+
+        w_var = cp.Variable(R.shape[0])
+        prob = cp.Problem(cp.Minimize(cp.QuadForm(w_var, cov) - risk_aversion*R.T @ w_var),
+                          [
+                              np.ones(R.shape).T @ w_var == 1,
+                              w_var >= 0
+                          ])
+        
+        prob.solve()
+
+        print(f'Optimal Value acheived: {prob.value}')
+        print(f'Solution {w_var.value}')
+        print(f'Solution TYPE {type(w_var.value)}')
+        return w_var.value
+
+
     def descent_based_method(self, expected_returns : jnp.array) -> jnp.array:
         
         return
