@@ -5,17 +5,17 @@ import streamlit as st
 
 class PortofolioWeightCalculator():
 
-    def __init__(self, risk_tolerance:float):
+    def __init__(self, risk_tolerance:float = 0.0):
         
         self.risk_tolerance = risk_tolerance
         self.optimal_weights = None
     
     # Should add a check to see if the final matrix is even invertible :/ 
     def efficient_frontier_method(self, equity_data : pd.DataFrame, period : int, target_return_mu : float) -> jnp.array:
-        epsilon = 1e-6
+        epsilon = 1e-7
         R = self.geometric_expected_returns(equity_data, period=period)
         R = R.reshape(-1,1)
-        timeseries_returns = self.calculate_timeseries_returns(equity_data, period)
+        timeseries_returns = self.calculate_timeseries_returns(equity_data)
 
         cov = self.calculate_covariance(timeseries_returns)
         cov = cov + jnp.eye(cov.shape[0])*epsilon
@@ -67,11 +67,15 @@ class PortofolioWeightCalculator():
 
         ratio = end_val / start_val
 
-        compound_growth = ratio**(1.0/period) - 1
+        compound_growth = ratio**(1.0/252)
+        total_return_for_period = compound_growth**period - 1 
         print(f'Compound Growth: {compound_growth}')
-        return compound_growth
+        print(f'Total Return for period {total_return_for_period}')
+        return total_return_for_period
     
-    def calculate_timeseries_returns(self, equity_data, period : int) -> jnp.array:
-        timeseries_returns = equity_data.pct_change(period).dropna()
+    def calculate_timeseries_returns(self, equity_data) -> jnp.array:
+        timeseries_returns = equity_data.pct_change(1).dropna()
         return_array = jnp.array(timeseries_returns.values)
+        print(f'Equity data shape: {equity_data.shape}')
+        print(f'Return array shap: {return_array.shape}')
         return return_array

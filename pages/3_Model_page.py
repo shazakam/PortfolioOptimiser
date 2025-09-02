@@ -57,16 +57,18 @@ if 'market_data' in st.session_state and len(possible_equities) > 0:
 
         method = st.selectbox('Select Model Solution method', ['Direct Matrix Solution', 'Gradient Based solution'])
 
+        if method == 'Direct Matrix Solution':
+            st.text('This method solves a simple Lagrangian Optimisation problem with equality constraints. As a consequence, it does not enforce weights to be positive and that they only sum to one. Negative weights imply shorting and large weights (both in negative terms and positive terms) imply introducing leverage to achieve targeted return.')
+            
+            targeted_return = st.number_input(label='Input targeted return for portfolio', step = 0.01)
+            period = st.number_input(label='Period over which to calculate returns (1 = 1 day)', step = 1)
 
-        if st.button('Calculate weights'):
-            opt = PortofolioWeightCalculator(1)
+            if st.button('Calculate weights'):
+                opt = PortofolioWeightCalculator()
+                weights = opt.efficient_frontier_method(portfolio_timeseries, period, targeted_return)
 
-            if method == 'Direct Matrix Solution':
-                weights = opt.efficient_frontier_method(portfolio_timeseries, 251, 0.50)
-
-            else:
-                st.warning('Gradient Method')
-
+                weight_df = pd.DataFrame(weights[:-2].T, columns=portfolio_timeseries.columns, index = ['Portfolio Weights']).T
+                st.dataframe(weight_df)
     # Select Portfolio Model to run and select relevant parameters
 
     # Display final model results and visualisations
