@@ -14,4 +14,4 @@ Consists for three primary pages:
 - [ ] Following from point above - Data Loading page will need to be changed and so will the metric filtering page (or just a seperate page that is distinct from the two)
 - [ ] Optimisation of Sharpe ratios instead of mean-variance 
 
-![Portfolio Optimisation](images/Model page.png)
+![Portfolio Optimisation](images/preview.png)
