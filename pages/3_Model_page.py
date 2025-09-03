@@ -72,7 +72,29 @@ if 'market_data' in st.session_state and len(possible_equities) > 0:
                 st.dataframe(weight_df) 
                 
         elif method == 'Quadratic Programming Based Solution':
-            st.text('This method solves a Quadratic Program with both equality and inequality constraints.')
+            st.text("Given the following variables: ")
+            math_text_1 = r"""
+                \min_{w \in \mathbb{R}^N} \ w^T \Sigma w - qR^Tw \\
+            """
+
+            math_text_2 = r"""\bold{1}^Tw = 1 \\
+                w \geq \bold{1}
+            """
+
+            st.latex(r"""\begin{align} w \in \mathbb{R}^N \ \text{ (portfolio weights to be optimised for $N$ assets)} \\ 
+                     \Sigma \in \mathbb{R}^{N \times N} \text{ (Covariance of calculate returns for assets over period $t$)}\\ 
+                     q \in \mathbb{R} \text{ (Risk aversion, lower value implies more risk averse)}\\ 
+                     R \in \mathbb{R}^N \text{ (Calculated vector of expected returns for all $N$ assets)} 
+                     \end{align}""")
+            st.text("Solve this problem:")
+            st.latex(math_text_1)
+            st.text("Given the constraints: ")
+            st.latex(math_text_2)
+
+            st.text("Expected returns are calculated based on historical geometric mean returns over a given period. " \
+                "If you want to calculate expected returns (and as a consequence the period used for all other calculations) over a year, use a period equal to 252 days.")
+
+
             risk_aversion = st.number_input(label='Input risk aversion', step = 0.01)
             period = st.number_input(label='Period over which to calculate returns (1 = 1 day)', step = 1)
 
@@ -82,6 +104,8 @@ if 'market_data' in st.session_state and len(possible_equities) > 0:
 
                 print(weights.shape)
                 weight_df = pd.DataFrame(weights.reshape(1,-1).T, columns=['Weights'], index = portfolio_timeseries.columns)
+                weight_df[weight_df['Weights'] < 0.001] = 0
+
                 st.dataframe(weight_df) 
     # Display final model results and visualisations
 else:

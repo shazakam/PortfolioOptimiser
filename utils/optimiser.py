@@ -71,20 +71,12 @@ class PortofolioWeightCalculator():
         print(f'Solution TYPE {type(w_var.value)}')
         return w_var.value
 
-
-    def descent_based_method(self, expected_returns : jnp.array) -> jnp.array:
-        
-        return
     
     def calculate_covariance(self, expected_returns_timeseries : jnp.array) -> jnp.array:
 
         covariance = jnp.cov(expected_returns_timeseries, rowvar=False)
         
         return covariance
-    
-    def visualise_frontier(self):
-        
-        return
 
     def geometric_expected_returns(self, equity_data, period : int) -> jnp.array:
 
