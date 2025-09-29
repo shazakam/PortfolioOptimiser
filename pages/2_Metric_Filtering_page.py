@@ -25,13 +25,3 @@ if 'final_df' in st.session_state:
     st.dataframe(filtered_df)
 else:
     st.warning("Please load market data first on the 'Data Loading' page.")
-
-# Filter according to user preferences for volatility and fundamental metrics
-
-# Select final equities to run portfolio model on
-
-# Display Time series Data for Selected Equities
-
-# Select Portfolio Model to run and select relevant parameters
-
-# Display final results and visualisations

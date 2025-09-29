@@ -7,106 +7,108 @@ from utils.optimiser import PortofolioWeightCalculator
 import cvxpy as cp
 
 # Select Stocks for model
+try:
+    market_data = st.session_state.market_data
+    equity_dict = dict(chain.from_iterable(d.items() for d in market_data.values()))
 
-market_data = st.session_state.market_data
-equity_dict = dict(chain.from_iterable(d.items() for d in market_data.values()))
-
-possible_equities = st.multiselect('Select Equities for Portfolio', equity_dict.keys())
+    possible_equities = st.multiselect('Select Equities for Portfolio', equity_dict.keys())
 
 
-if 'market_data' in st.session_state and len(possible_equities) > 0:
-    # Display Time series Data for Selected Equities
-    portfolio_timeseries = []
+    if 'market_data' in st.session_state and len(possible_equities) > 0:
+        # Display Time series Data for Selected Equities
+        portfolio_timeseries = []
 
-    for equity_ticker in possible_equities:
-        equity_ticker_class = equity_dict[equity_ticker]
-        equity_timeseries = equity_ticker_class.history(auto_adjust = False, start = st.session_state.start_date, end = st.session_state.end_date).asfreq('B').ffill()['Adj Close']
+        for equity_ticker in possible_equities:
+            equity_ticker_class = equity_dict[equity_ticker]
+            equity_timeseries = equity_ticker_class.history(auto_adjust = False, start = st.session_state.start_date, end = st.session_state.end_date).asfreq('B').ffill()['Adj Close']
 
-        portfolio_timeseries.append(equity_timeseries)
+            portfolio_timeseries.append(equity_timeseries)
 
-    portfolio_timeseries = pd.concat(portfolio_timeseries, axis = 1)
-    portfolio_timeseries.columns = possible_equities
+        portfolio_timeseries = pd.concat(portfolio_timeseries, axis = 1)
+        portfolio_timeseries.columns = possible_equities
 
-    equities_to_plot = st.multiselect('Select Equities to plot from selected equities', possible_equities)
-    
+        equities_to_plot = st.multiselect('Select Equities to plot from selected equities', possible_equities)
+        
 
-    if equities_to_plot:
+        if equities_to_plot:
 
-        # Select relevant columns
-        plot_data = portfolio_timeseries[equities_to_plot].copy()
+            # Select relevant columns
+            plot_data = portfolio_timeseries[equities_to_plot].copy()
 
-        # Reset index to make the dates a column
-        plot_data = plot_data.reset_index().rename(columns={"index": "Date"})
+            # Reset index to make the dates a column
+            plot_data = plot_data.reset_index().rename(columns={"index": "Date"})
 
-        # Melt the DataFrame for Plotly long format
-        plot_data_melted = plot_data.melt(
-            id_vars="Date", 
-            var_name="Equity", 
-            value_name="Price"
-        )
+            # Melt the DataFrame for Plotly long format
+            plot_data_melted = plot_data.melt(
+                id_vars="Date", 
+                var_name="Equity", 
+                value_name="Price"
+            )
 
-        # Create Plotly line chart
-        fig = px.line(
-            plot_data_melted, 
-            x="Date", 
-            y="Price", 
-            color="Equity", 
-            title="Equity Prices Over Time"
-        )
+            # Create Plotly line chart
+            fig = px.line(
+                plot_data_melted, 
+                x="Date", 
+                y="Price", 
+                color="Equity", 
+                title="Equity Prices Over Time"
+            )
 
-        st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True)
 
-        method = st.selectbox('Select Model Solution method', ['Direct Matrix Solution', 'Quadratic Programming Based Solution'])
+            method = st.selectbox('Select Model Solution method', ['Direct Matrix Solution', 'Quadratic Programming Based Solution'])
 
-        if method == 'Direct Matrix Solution':
-            st.text('This method solves a simple Lagrangian Optimisation problem with equality constraints. As a consequence, it does not enforce weights to be positive and that they only sum to one. Negative weights imply shorting and large weights (both in negative terms and positive terms) imply introducing leverage to achieve targeted return.')
-            
-            targeted_return = st.number_input(label='Input targeted return for portfolio', step = 0.01)
-            period = st.number_input(label='Period over which to calculate returns (1 = 1 day)', step = 1)
-
-            if st.button('Calculate weights'):
-                opt = PortofolioWeightCalculator()
-                weights = opt.efficient_frontier_method(portfolio_timeseries, period, targeted_return)
-
-                weight_df = pd.DataFrame(weights[:-2].T, columns=portfolio_timeseries.columns, index = ['Portfolio Weights']).T
-                st.dataframe(weight_df) 
+            if method == 'Direct Matrix Solution':
+                st.text('This method solves a simple Lagrangian Optimisation problem with equality constraints. As a consequence, it does not enforce weights to be positive and that they only sum to one. Negative weights imply shorting and large weights (both in negative terms and positive terms) imply introducing leverage to achieve targeted return.')
                 
-        elif method == 'Quadratic Programming Based Solution':
-            st.text("Given the following variables: ")
-            math_text_1 = r"""
-                \min_{w \in \mathbb{R}^N} \ w^T \Sigma w - qR^Tw \\
-            """
+                targeted_return = st.number_input(label='Input targeted return for portfolio', step = 0.01)
+                period = st.number_input(label='Period over which to calculate returns (1 = 1 day)', step = 1)
 
-            math_text_2 = r"""\bold{1}^Tw = 1 \\
-                w \geq \bold{1}
-            """
+                if st.button('Calculate weights'):
+                    opt = PortofolioWeightCalculator()
+                    weights = opt.efficient_frontier_method(portfolio_timeseries, period, targeted_return)
 
-            st.latex(r"""\begin{align} w \in \mathbb{R}^N \ \text{ (portfolio weights to be optimised for $N$ assets)} \\ 
-                     \Sigma \in \mathbb{R}^{N \times N} \text{ (Covariance of calculate returns for assets over period $t$)}\\ 
-                     q \in \mathbb{R} \text{ (Risk aversion, lower value implies more risk averse)}\\ 
-                     R \in \mathbb{R}^N \text{ (Calculated vector of expected returns for all $N$ assets)} 
-                     \end{align}""")
-            st.text("Solve this problem:")
-            st.latex(math_text_1)
-            st.text("Given the constraints: ")
-            st.latex(math_text_2)
+                    weight_df = pd.DataFrame(weights[:-2].T, columns=portfolio_timeseries.columns, index = ['Portfolio Weights']).T
+                    st.dataframe(weight_df) 
+                    
+            elif method == 'Quadratic Programming Based Solution':
+                st.text("Given the following variables: ")
+                math_text_1 = r"""
+                    \min_{w \in \mathbb{R}^N} \ w^T \Sigma w - qR^Tw \\
+                """
 
-            st.text("Expected returns are calculated based on historical geometric mean returns over a given period. " \
-                "If you want to calculate expected returns (and as a consequence the period used for all other calculations) over a year, use a period equal to 252 days.")
+                math_text_2 = r"""\bold{1}^Tw = 1 \\
+                    w \geq \bold{1}
+                """
+
+                st.latex(r"""\begin{align} w \in \mathbb{R}^N \ \text{ (portfolio weights to be optimised for $N$ assets)} \\ 
+                        \Sigma \in \mathbb{R}^{N \times N} \text{ (Covariance of calculate returns for assets over period $t$)}\\ 
+                        q \in \mathbb{R} \text{ (Risk aversion, lower value implies more risk averse)}\\ 
+                        R \in \mathbb{R}^N \text{ (Calculated vector of expected returns for all $N$ assets)} 
+                        \end{align}""")
+                st.text("Solve this problem:")
+                st.latex(math_text_1)
+                st.text("Given the constraints: ")
+                st.latex(math_text_2)
+
+                st.text("Expected returns are calculated based on historical geometric mean returns over a given period. " \
+                    "If you want to calculate expected returns (and as a consequence the period used for all other calculations) over a year, use a period equal to 252 days.")
 
 
-            risk_aversion = st.number_input(label='Input risk aversion', step = 0.01)
-            period = st.number_input(label='Period over which to calculate returns (1 = 1 day)', step = 1)
+                risk_aversion = st.number_input(label='Input risk aversion', step = 0.01)
+                period = st.number_input(label='Period over which to calculate returns (1 = 1 day)', step = 1)
 
-            if st.button('Calculate Weights'):
-                opt = PortofolioWeightCalculator()
-                weights = opt.quadratic_prog_method(portfolio_timeseries, period, risk_aversion)
+                if st.button('Calculate Weights'):
+                    opt = PortofolioWeightCalculator()
+                    weights = opt.quadratic_prog_method(portfolio_timeseries, period, risk_aversion)
 
-                print(weights.shape)
-                weight_df = pd.DataFrame(weights.reshape(1,-1).T, columns=['Weights'], index = portfolio_timeseries.columns)
-                weight_df[weight_df['Weights'] < 0.001] = 0
+                    print(weights.shape)
+                    weight_df = pd.DataFrame(weights.reshape(1,-1).T, columns=['Weights'], index = portfolio_timeseries.columns)
+                    weight_df[weight_df['Weights'] < 0.001] = 0
 
-                st.dataframe(weight_df) 
-    # Display final model results and visualisations
-else:
-    st.warning("Please load market data first on the 'Data Loading' page.")
+                    st.dataframe(weight_df) 
+        # Display final model results and visualisations
+    else:
+        st.warning("Please load market data first on the 'Data Loading' page.")
+except:
+     st.warning("Please load market data first on the 'Data Loading' page.")

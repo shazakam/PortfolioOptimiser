@@ -9,25 +9,29 @@ import plotly.express as px
 
 @st.cache_data
 def get_equity_list() -> pd.DataFrame:
+
     df = pd.read_csv(
             "data/Euronext_Equities_2025-08-19.csv",
             sep=";",          # Euronext uses semicolons
             skiprows=0,       # adjust if file has metadata rows
             on_bad_lines="skip"  # skip problematic rows if any
         )
+    
     return df
 
 
 st.title("Portfolio Optimiser")
 try:
-    market_df = get_equity_list()
+    market_df = get_equity_list()   
 
     yf_market_tag_index = {
         'Oslo Børs': ['OL', 'OSEBX.OL'],
-        'Euronext Paris': ['PA', 'Yabadadoo.PA']} # Add more markets, their yfinance ticker suffices and market index tickers here (for beta calculations)
+        'Euronext Paris': ['PA', 'ENX.PA'],
+        # 'Euronext Amsterdam' : ['AS', 'AEX.AS'] Not working currently
+        'Euronext Brussels': ['BE', 'ENXB.BE']} 
 
     # TODO: Add more markets
-    possible_markets = st.multiselect('Select Markets', ['Oslo Børs', 'Euronext Paris'], default=['Oslo Børs'])
+    possible_markets = st.multiselect('Select Markets', list(yf_market_tag_index.keys()), default=['Oslo Børs'])
     st.session_state.start_date = st.date_input("Start Date", value=pd.to_datetime("2021-07-01"))
     st.session_state.end_date = st.date_input("End Date", value=pd.to_datetime("2025-05-28"))
 
