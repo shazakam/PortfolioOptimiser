@@ -9,7 +9,7 @@ Consists for three primary pages:
 ## TODO:
 - [X] Allow for multiple markets, not just OSBX
 - [ ] Optimisation of Sharpe ratios instead of mean-variance 
-- [ ] Add indiividual stock analysis page i.e. Load in ticker and calculate whether it is undervalued or not according to certain metrics / fundamental stats. 
+- [ ] Add individual stock analysis page i.e. Load in ticker and calculate whether it is undervalued or not according to certain metrics / fundamental stats - Growth, Earnings, Stability and Assets
 - [ ] Crypto Dashboard?
 
 ![Portfolio Optimisation](images/preview.png)

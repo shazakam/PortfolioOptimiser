@@ -10,14 +10,14 @@ import plotly.express as px
 welcome_page = st.Page("welcome/welcome_page.py", title="Welcome", default=True)
 
 data_loading = st.Page(
-    "portfolio/1_Data_Loading_page.py", title="Data Loading", default=True)
+    "portfolio/1_Data_Loading_page.py", title="Data Loading")
 
 metric_filtering = st.Page("portfolio/2_Metric_Filtering_page.py", title="Metric Filtering")
 
 portfolio_modelling = st.Page(
     "portfolio/3_Model_page.py", title="Portfolio Models")
 
-equity_analysis = st.Page("analysis/stuff.py", title="Fundamental Equity Analysis")
+equity_analysis = st.Page("analysis/fundamental.py", title="Fundamental Equity Analysis")
 
 pg = st.navigation(
     {
