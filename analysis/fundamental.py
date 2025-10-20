@@ -23,17 +23,16 @@ if st.button("Run the fantastic fundamental analysis"):
         # Chart of yearly PE ratio with industry average - maybe let user list competitors to get average? 
 
         pe_ratio = calculate_pe_over_time(ticker_data, hist_data, competitor_list)
-        
-        pe_fig = plot_pe_over_time(pe_ratio)
+        pe_fig = plot_ratio_over_time(pe_ratio, 'P/E', 'P/E Ratios Over Time', 'Current Industry Average P/E')
         st.plotly_chart(pe_fig, use_container_width=True)
 
         # st.markdown("#### 📊 Performance Metrics")
-        # col1, col2, col3 = st.columns(3)
-        # col1.metric("Portfolio Value", "$1.2M", "+3.4%")
-        # col2.metric("Sharpe Ratio", "1.45", "+0.08")
-        # col3.metric("Volatility", "12.5%", "-0.6%")
 
-        # Chart of yearly PB - industry average
+        # TODO: Little Card showing PB and industry PB
+
+        pb_ratio = calculate_pb_over_time(ticker_data, hist_data, competitor_list)
+        pb_fig = plot_ratio_over_time(pb_ratio, 'P/B', 'P/B Ratios Over Time', 'Current Industry Average P/B')
+        st.plotly_chart(pb_fig, use_container_width=True)
 
         # Chart of yearly EPS - industry average
 

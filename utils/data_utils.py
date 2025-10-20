@@ -89,8 +89,8 @@ def get_fundamental_loops(possible_markets:list, yf_market_tag_index : dict, sta
     return return_and_risk_metrics, fundamental_metrics
 
 
-def calculate_industry_average_pe(competitor_list:list)-> float | None:
-    competitor_pe = [data.info['trailingPE'] for comp in competitor_list if (data := yf.Ticker(comp)).info.get('trailingPE', None) is not None]
+def calculate_industry_average_metric(competitor_list:list, metric = 'trailingPE')-> float | None:
+    competitor_pe = [data.info[metric] for comp in competitor_list if (data := yf.Ticker(comp)).info.get(metric, None) is not None]
     industry_average_pe = np.mean(competitor_pe) if competitor_pe else None
     return industry_average_pe
 
@@ -98,7 +98,7 @@ def calculate_pe_over_time(ticker_data:yf.Ticker, hist_data:pd.DataFrame, compet
     eps = ticker_data.incomestmt.loc['Diluted EPS'].dropna()
     eps.index = eps.index.tz_localize(None)
 
-    industry_average_pe = calculate_industry_average_pe(competitor_list)
+    industry_average_pe = calculate_industry_average_metric(competitor_list, 'trailingPE')
 
     year_av = []
 
@@ -107,13 +107,38 @@ def calculate_pe_over_time(ticker_data:yf.Ticker, hist_data:pd.DataFrame, compet
         average = hist_data.loc[start_date:end_date]['Close'].mean()
         year_av.append(float(average))
 
-    year_av.reverse()
+    # year_av.reverse()
 
     pe_ratio = pd.DataFrame(np.array(year_av) / np.array(eps), index=eps.index, columns=['Diluted P/E Ratio'])
     pe_ratio['Date'] = pd.to_datetime(pe_ratio.index)
     pe_ratio['Current Industry Average P/E'] = industry_average_pe
 
     return pe_ratio
+
+def calculate_pb_over_time(ticker_data:yf.Ticker, hist_data:pd.DataFrame, competitor_list:list)-> pd.DataFrame:
+    stock_equity = ticker_data.balance_sheet.loc['Stockholders Equity'].dropna()
+    book_value = ticker_data.balance_sheet.loc['Total Assets'].dropna() - ticker_data.balance_sheet.loc['Total Debt'].dropna()
+
+    outstanding_shares = ticker_data.balance_sheet.loc['Ordinary Shares Number'].dropna()
+    outstanding_shares.index = outstanding_shares.index.tz_localize(None)
+    book_value_per_share = book_value.values / outstanding_shares.values
+
+    industry_average_pb = calculate_industry_average_metric(competitor_list, 'priceToBook')
+
+    year_av = []
+
+    for end_date in list(book_value.index):
+
+        start_date = end_date - pd.DateOffset(years=1)
+        average = hist_data.loc[start_date:end_date]['Close'].mean()
+        year_av.append(float(average))
+
+    pb_ratio = pd.DataFrame(np.array(year_av) / book_value_per_share, index=book_value.index.tz_localize(None), columns=['Price-To-Book Value'])
+    pb_ratio['Date'] = pd.to_datetime(pb_ratio.index)
+    pb_ratio['Current Industry Average PB'] = industry_average_pb
+
+    
+    return pb_ratio
 
 def summarise_fundamentals(hist_data:pd.DateOffset, ticker_data:yf.Ticker)-> pd.DataFrame:
         st.line_chart(hist_data['Close'], use_container_width=True)
