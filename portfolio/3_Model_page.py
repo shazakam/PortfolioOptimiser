@@ -102,7 +102,6 @@ try:
                     opt = PortofolioWeightCalculator()
                     weights = opt.quadratic_prog_method(portfolio_timeseries, period, risk_aversion)
 
-                    print(weights.shape)
                     weight_df = pd.DataFrame(weights.reshape(1,-1).T, columns=['Weights'], index = portfolio_timeseries.columns)
                     weight_df[weight_df['Weights'] < 0.001] = 0
 
